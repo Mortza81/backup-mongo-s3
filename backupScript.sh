@@ -18,13 +18,19 @@ ping -c 1 8.8.8.8 > /dev/null 2>&1
 if [ $? -ne 0 ]
 then
 	echo -e "\nNo internet connection, Backup failed. $DATE" >> $LOGFILE
-	exit 0
+	exit 1
 fi
-
+#Check if awscli is installed
+dpkg -l | grep awscli
+if [ $? -ne 0 ]
+then	
+	echo -e "\nawscli is not installed. $DATE" >> $LOGFILE
+	exit 1
+fi
 mkdir -p "$OUTDIR"
 mongodump --uri=$DB_URL --db=$DBNAME --gzip --out="$OUTDIR/$DATE" 
 #Check if backing up is successful
-if [ $? -eq 0 ];
+if [ $? -eq 0 ]
 then
 	aws s3 cp "$OUTDIR/$DATE" s3://$BUCKETPATH/$DATE --endpoint-url=https://$DOMAIN/ --recursive
 	#Trying to send the backup files to object storage
@@ -49,5 +55,4 @@ else
 	echo -e "\nBackup successfully removed from the local directory. $DATE"
 	exit 0
 fi
-
 
